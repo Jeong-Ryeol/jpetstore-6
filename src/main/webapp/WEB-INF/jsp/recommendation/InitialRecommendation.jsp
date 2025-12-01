@@ -28,6 +28,28 @@
   <h2>당신에게 추천하는 Top 5 반려동물 카테고리</h2>
   <p>AI가 회원님의 라이프스타일을 분석하여 가장 적합한 반려동물 카테고리 5개를 추천해드립니다.</p>
 
+  <!-- LLM 모드 전환 버튼 -->
+  <div style="margin: 20px 0; display: flex; gap: 10px; justify-content: center;">
+    <stripes:link beanclass="org.mybatis.jpetstore.web.actions.InitialRecommendationActionBean"
+                  style="padding: 12px 24px; border-radius: 5px; text-decoration: none; font-weight: bold;
+                         ${actionBean.llmMode == 'gemini' ? 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' : 'background: #e0e0e0; color: #333;'}">
+      <stripes:param name="llmMode" value="gemini"/>
+      Gemini 모드
+    </stripes:link>
+    <stripes:link beanclass="org.mybatis.jpetstore.web.actions.InitialRecommendationActionBean"
+                  style="padding: 12px 24px; border-radius: 5px; text-decoration: none; font-weight: bold;
+                         ${actionBean.llmMode == 'ollama' ? 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;' : 'background: #e0e0e0; color: #333;'}">
+      <stripes:param name="llmMode" value="ollama"/>
+      Local LLM 모드
+    </stripes:link>
+  </div>
+
+  <div style="text-align: center; margin-bottom: 20px; padding: 10px; background: #f5f5f5; border-radius: 5px;">
+    <span style="font-size: 14px; color: #666;">
+      현재 모드: <strong style="color: #667eea;">${actionBean.llmMode == 'ollama' ? 'Local LLM (Ollama llama3.1:8b)' : 'Gemini API'}</strong>
+    </span>
+  </div>
+
   <div style="display: flex; gap: 20px; margin-top: 30px; flex-wrap: wrap;">
     <c:forEach var="category" items="${actionBean.top5Categories}" varStatus="status">
       <div style="flex: 1; min-width: 250px; max-width: 350px; border: 2px solid #ddd; border-radius: 10px; padding: 20px; background: #f9f9f9;">
@@ -73,6 +95,34 @@
       원하는 카테고리의 동물을 가상으로 키워보고 나서 최종 추천을 받아보세요!
     </p>
   </div>
+
+  <!-- Agent 로그 표시 영역 (Ollama 모드일 때만) -->
+  <c:if test="${actionBean.llmMode == 'ollama' && not empty actionBean.agentLog}">
+    <div style="margin-top: 30px; border-top: 2px solid #ddd; padding-top: 20px;">
+      <button type="button" onclick="toggleAgentLog()"
+              style="padding: 10px 20px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+        Agent 로그 보기/숨기기
+      </button>
+
+      <div id="agentLogContainer" style="display: none; margin-top: 15px;">
+        <div style="background: #1e1e1e; border-radius: 8px; padding: 20px; overflow-x: auto;">
+          <h4 style="color: #4fc3f7; margin-top: 0; margin-bottom: 15px;">Ollama Agent 실행 로그</h4>
+          <pre style="color: #d4d4d4; font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; line-height: 1.5; margin: 0; white-space: pre-wrap; word-wrap: break-word;"><c:out value="${actionBean.agentLog}" /></pre>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      function toggleAgentLog() {
+        var container = document.getElementById('agentLogContainer');
+        if (container.style.display === 'none') {
+          container.style.display = 'block';
+        } else {
+          container.style.display = 'none';
+        }
+      }
+    </script>
+  </c:if>
 </div>
 
 <%@ include file="../common/IncludeBottom.jsp"%>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+       Copyright 2010-2025 the original author or authors.
+
+       Licensed under the Apache License, Version 2.0 (the "License");
+       you may not use this file except in compliance with the License.
+       You may obtain a copy of the License at
+
+          https://www.apache.org/licenses/LICENSE-2.0
+
+       Unless required by applicable law or agreed to in writing, software
+       distributed under the License is distributed on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+       See the License for the specific language governing permissions and
+       limitations under the License.
+
+-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.mybatis.jpetstore.mapper.ProductCharacteristicsMapper">
+
+    <resultMap id="characteristicsResultMap" type="ProductCharacteristics">
+        <id property="productId" column="product_id"/>
+        <result property="careLevel" column="care_level"/>
+        <result property="spaceRequirement" column="space_requirement"/>
+        <result property="monthlyCost" column="monthly_cost"/>
+        <result property="allergyRisk" column="allergy_risk"/>
+        <result property="noiseLevel" column="noise_level"/>
+        <result property="activityLevel" column="activity_level"/>
+        <result property="socialNeed" column="social_need"/>
+        <result property="trainingDifficulty" column="training_difficulty"/>
+        <result property="lifespan" column="lifespan"/>
+        <result property="suitableForStudio" column="suitable_for_studio"/>
+        <result property="suitableForApartment" column="suitable_for_apartment"/>
+        <result property="suitableForHouse" column="suitable_for_house"/>
+        <result property="suitableForBusy" column="suitable_for_busy"/>
+        <result property="childFriendly" column="child_friendly"/>
+        <result property="temperament" column="temperament"/>
+        <result property="description" column="description"/>
+    </resultMap>
+
+    <select id="getCharacteristics" parameterType="string" resultMap="characteristicsResultMap">
+        SELECT * FROM product_characteristics WHERE product_id = #{productId}
+    </select>
+
+    <select id="getCharacteristicsByCategory" parameterType="string" resultMap="characteristicsResultMap">
+        SELECT pc.* FROM product_characteristics pc
+        JOIN product p ON pc.product_id = p.productid
+        WHERE p.category = #{categoryId}
+    </select>
+
+    <select id="getAllCharacteristics" resultMap="characteristicsResultMap">
+        SELECT * FROM product_characteristics
+    </select>
+
+</mapper>
