@@ -21,8 +21,10 @@ import java.util.List;
 import org.mybatis.jpetstore.domain.Category;
 import org.mybatis.jpetstore.domain.Item;
 import org.mybatis.jpetstore.domain.Product;
+import org.mybatis.jpetstore.domain.ProductCharacteristics;
 import org.mybatis.jpetstore.mapper.CategoryMapper;
 import org.mybatis.jpetstore.mapper.ItemMapper;
+import org.mybatis.jpetstore.mapper.ProductCharacteristicsMapper;
 import org.mybatis.jpetstore.mapper.ProductMapper;
 import org.springframework.stereotype.Service;
 
@@ -37,11 +39,14 @@ public class CatalogService {
   private final CategoryMapper categoryMapper;
   private final ItemMapper itemMapper;
   private final ProductMapper productMapper;
+  private final ProductCharacteristicsMapper characteristicsMapper;
 
-  public CatalogService(CategoryMapper categoryMapper, ItemMapper itemMapper, ProductMapper productMapper) {
+  public CatalogService(CategoryMapper categoryMapper, ItemMapper itemMapper, ProductMapper productMapper,
+      ProductCharacteristicsMapper characteristicsMapper) {
     this.categoryMapper = categoryMapper;
     this.itemMapper = itemMapper;
     this.productMapper = productMapper;
+    this.characteristicsMapper = characteristicsMapper;
   }
 
   public List<Category> getCategoryList() {
@@ -90,5 +95,18 @@ public class CatalogService {
 
   public List<Item> getAllItems() {
     return itemMapper.getAllItems();
+  }
+
+  // ProductCharacteristics 관련 메서드
+  public ProductCharacteristics getProductCharacteristics(String productId) {
+    return characteristicsMapper.getCharacteristics(productId);
+  }
+
+  public List<ProductCharacteristics> getCharacteristicsByCategory(String categoryId) {
+    return characteristicsMapper.getCharacteristicsByCategory(categoryId);
+  }
+
+  public List<ProductCharacteristics> getAllCharacteristics() {
+    return characteristicsMapper.getAllCharacteristics();
   }
 }

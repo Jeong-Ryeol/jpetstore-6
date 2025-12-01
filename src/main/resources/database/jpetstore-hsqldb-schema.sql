@@ -185,3 +185,25 @@ CREATE TABLE GAME_SESSION (
                               CONSTRAINT PK_GAME_SESSION PRIMARY KEY (SESSION_ID)
 );
 
+CREATE TABLE product_characteristics (
+    product_id VARCHAR(10) NOT NULL,
+    care_level VARCHAR(10),
+    space_requirement VARCHAR(10),
+    monthly_cost VARCHAR(20),
+    allergy_risk VARCHAR(10),
+    noise_level VARCHAR(10),
+    activity_level VARCHAR(10),
+    social_need VARCHAR(10),
+    training_difficulty VARCHAR(10),
+    lifespan INTEGER,
+    suitable_for_studio BOOLEAN,
+    suitable_for_apartment BOOLEAN,
+    suitable_for_house BOOLEAN,
+    suitable_for_busy BOOLEAN,
+    child_friendly BOOLEAN,
+    temperament VARCHAR(100),
+    description VARCHAR(1000),
+    CONSTRAINT pk_product_char PRIMARY KEY (product_id),
+    CONSTRAINT fk_product_char FOREIGN KEY (product_id) REFERENCES product(productid)
+);
+

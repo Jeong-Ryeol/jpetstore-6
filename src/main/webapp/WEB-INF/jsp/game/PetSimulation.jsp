@@ -23,8 +23,8 @@
   <p>24시간 동안 반려동물을 돌봐주세요. AI가 실시간으로 상황을 생성합니다.</p>
 
   <div style="margin: 20px 0; padding: 15px; background: #f0f0f0; border-radius: 5px;">
-    <p><strong>품종:</strong> ${param.breedId}</p>
-    <button type="button" onclick="startGame('${param.breedId}')" style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+    <p><strong>카테고리:</strong> ${param.categoryId}</p>
+    <button type="button" onclick="startGame('${param.categoryId}')" style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
       게임 시작
     </button>
   </div>
@@ -49,14 +49,14 @@
   let isProcessing = false; // 처리 중 플래그 추가
   const ctx = '${pageContext.request.contextPath}';
 
-  function startGame(breedId) {
+  function startGame(categoryId) {
     // 이미 처리 중이면 무시
     if (isProcessing) return;
 
     isProcessing = true;
     disableAllButtons(true);
 
-    const url = ctx + '/actions/GameSimulation.action?startGame=&breedId=' + encodeURIComponent(breedId);
+    const url = ctx + '/actions/GameSimulation.action?startGame=&categoryId=' + encodeURIComponent(categoryId);
 
     fetch(url, {
       headers: { 'Accept': 'application/json' }
@@ -143,12 +143,16 @@
     // 메시지 표시
     document.getElementById('game-message').innerText = data.message || '';
 
+    // 턴 번호 계산 (7시 시작 = 1턴, 31시 = 25턴이지만 보통 24턴 이내 종료)
+    const currentTurn = data.timeHour - 6;
+    const maxTurn = 24;
+
     // 상태 표시
     const statusText =
-      '시간: ' + data.timeHour + '시 ' +
-      '| 건강: ' + data.health + ' ' +
-      '| 행복도: ' + data.happiness + ' ' +
-      '| 비용: ' + data.cost + '원' +
+      '턴: ' + currentTurn + '/' + maxTurn + ' ' +
+      '| 건강: ' + data.health + '/150 ' +
+      '| 행복도: ' + data.happiness + '/150 ' +
+      '| 비용: ' + data.cost.toLocaleString() + '원' +
       (data.finished ? ' [종료]' : '');
     document.getElementById('game-status').innerText = statusText;
 

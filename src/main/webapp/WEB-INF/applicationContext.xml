@@ -57,9 +57,14 @@
 
     <!-- GeminiClient Bean -->
     <bean id="geminiClient" class="org.mybatis.jpetstore.service.GeminiClient">
-        <!-- 실제 키는 환경변수나 외부 프로퍼티로 뺄 것 -->
-        <property name="apiKey" value="${GEMINI_API_KEY}"/>
+        <property name="apiKey" value="${GEMINI_API_KEY:your-api-key-here}"/>
         <property name="model" value="gemini-2.0-flash"/>
+    </bean>
+
+    <!-- OllamaClient Bean -->
+    <bean id="ollamaClient" class="org.mybatis.jpetstore.service.OllamaClient">
+        <property name="baseUrl" value="${OLLAMA_BASE_URL:http://localhost:11434}"/>
+        <property name="model" value="${OLLAMA_MODEL:llama3.1:8b}"/>
     </bean>
 
 </beans>

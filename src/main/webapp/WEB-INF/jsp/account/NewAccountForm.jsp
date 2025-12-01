@@ -25,7 +25,53 @@
 	<stripes:messages/>
 	<stripes:errors/>
 
-	<stripes:form
+<!-- 샘플 데이터 자동 입력 버튼 -->
+<div style="margin-bottom: 20px; padding: 15px; background: #f0f8ff; border: 2px solid #4a90d9; border-radius: 8px;">
+  <button type="button" onclick="fillSampleData()"
+          style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;">
+    샘플 데이터 자동 입력 (데모용)
+  </button>
+  <span style="margin-left: 10px; color: #666; font-size: 13px;">클릭하면 테스트용 데이터가 자동으로 입력됩니다.</span>
+</div>
+
+<script type="text/javascript">
+function fillSampleData() {
+  // User Information
+  document.querySelector('input[name="username"]').value = 'testuser';
+  document.querySelector('input[name="password"]').value = 'test123';
+  document.querySelector('input[name="repeatedPassword"]').value = 'test123';
+
+  // Account Information
+  document.querySelector('input[name="account.firstName"]').value = '길동';
+  document.querySelector('input[name="account.lastName"]').value = '홍';
+  document.querySelector('input[name="account.email"]').value = 'hong@test.com';
+  document.querySelector('input[name="account.phone"]').value = '010-1234-5678';
+  document.querySelector('input[name="account.address1"]').value = '서울시 강남구 테헤란로 123';
+  document.querySelector('input[name="account.address2"]').value = '101동 202호';
+  document.querySelector('input[name="account.city"]').value = 'Seoul';
+  document.querySelector('input[name="account.state"]').value = 'KR';
+  document.querySelector('input[name="account.zip"]').value = '06234';
+  document.querySelector('input[name="account.country"]').value = 'Korea';
+
+  // Profile Information
+  document.querySelector('select[name="account.languagePreference"]').value = 'english';
+  document.querySelector('select[name="account.favouriteCategoryId"]').value = 'DOGS';
+  document.querySelector('input[name="account.listOption"]').checked = true;
+  document.querySelector('input[name="account.bannerOption"]').checked = true;
+
+  // Lifestyle Information
+  document.querySelector('input[name="account.age"]').value = '28';
+  document.querySelector('input[name="account.occupation"]').value = '소프트웨어 개발자';
+  document.querySelector('select[name="account.homeHours"]').value = 'TWO_TO_SIX';
+  document.querySelector('select[name="account.housingType"]').value = 'APARTMENT';
+  document.querySelector('select[name="account.monthlyBudget"]').value = 'BETWEEN_100K_300K';
+  document.querySelector('input[name="account.hasAllergy"][value="false"]').checked = true;
+
+  alert('샘플 데이터가 입력되었습니다!');
+}
+</script>
+
+<stripes:form
 	beanclass="org.mybatis.jpetstore.web.actions.AccountActionBean"
 	focus="" id="newAccountForm">
 
