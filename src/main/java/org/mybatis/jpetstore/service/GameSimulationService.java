@@ -30,14 +30,14 @@ import org.springframework.stereotype.Service;
 public class GameSimulationService {
 
   private final GameSessionRepository gameSessionRepository;
-  private final GeminiClient geminiClient;
+  private final OllamaClient ollamaClient;
   private final GamePromptBuilder promptBuilder;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public GameSimulationService(GameSessionRepository gameSessionRepository, GeminiClient geminiClient,
+  public GameSimulationService(GameSessionRepository gameSessionRepository, OllamaClient ollamaClient,
       GamePromptBuilder promptBuilder) {
     this.gameSessionRepository = gameSessionRepository;
-    this.geminiClient = geminiClient;
+    this.ollamaClient = ollamaClient;
     this.promptBuilder = promptBuilder;
   }
 
@@ -46,10 +46,9 @@ public class GameSimulationService {
     String json;
 
     try {
-      json = geminiClient.chat(prompt);
+      json = ollamaClient.chat(prompt);
     } catch (Exception e) {
-      throw new RuntimeException("Gemini API 호출 실패: 잠시 후 다시 시도해주세요.", e);
-
+      throw new RuntimeException("Ollama API 호출 실패: 잠시 후 다시 시도해주세요.", e);
     }
     GameStateView view = parseGameStateJson(json);
 
@@ -103,8 +102,8 @@ public class GameSimulationService {
     // 3. 프롬프트 생성 (GamePromptBuilder에 맞춰서)
     String prompt = promptBuilder.buildNextPrompt(session, lastView, chosenOptionId);
 
-    // 4. Gemini 호출해서 JSON 문자열 받기
-    String json = geminiClient.chat(prompt);
+    // 4. Ollama 호출해서 JSON 문자열 받기
+    String json = ollamaClient.chat(prompt);
 
     // 5. JSON → GameStateView 파싱
     GameStateView newView = parseGameStateJson(json);
@@ -136,9 +135,55 @@ public class GameSimulationService {
 
   private GameStateView parseGameStateJson(String json) {
     try {
-      return objectMapper.readValue(json, GameStateView.class);
+      // JSON에서 코드블록 제거
+      String cleanJson = extractJsonFromResponse(json);
+      return objectMapper.readValue(cleanJson, GameStateView.class);
     } catch (Exception e) {
-      throw new RuntimeException("Gemini JSON 파싱 실패: " + json, e);
+      throw new RuntimeException("Ollama JSON 파싱 실패: " + json, e);
     }
+  }
+
+  private String extractJsonFromResponse(String response) {
+    if (response == null || response.trim().isEmpty()) {
+      return response;
+    }
+    String trimmed = response.trim();
+
+    // ```json ... ``` 코드블록 제거
+    if (trimmed.contains("```json")) {
+      int start = trimmed.indexOf("```json") + 7;
+      int end = trimmed.indexOf("```", start);
+      if (end > start) {
+        return trimmed.substring(start, end).trim();
+      }
+    }
+
+    // ``` ... ``` 코드블록 제거
+    if (trimmed.startsWith("```")) {
+      int start = trimmed.indexOf("```") + 3;
+      int end = trimmed.indexOf("```", start);
+      if (end > start) {
+        return trimmed.substring(start, end).trim();
+      }
+    }
+
+    // { 로 시작하는 JSON 찾기
+    int jsonStart = trimmed.indexOf("{");
+    if (jsonStart >= 0) {
+      int bracketCount = 0;
+      for (int i = jsonStart; i < trimmed.length(); i++) {
+        char c = trimmed.charAt(i);
+        if (c == '{')
+          bracketCount++;
+        else if (c == '}') {
+          bracketCount--;
+          if (bracketCount == 0) {
+            return trimmed.substring(jsonStart, i + 1);
+          }
+        }
+      }
+    }
+
+    return trimmed;
   }
 }
