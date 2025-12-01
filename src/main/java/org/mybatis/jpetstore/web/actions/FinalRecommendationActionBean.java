@@ -21,6 +21,7 @@ import net.sourceforge.stripes.action.DefaultHandler;
 import net.sourceforge.stripes.action.ForwardResolution;
 import net.sourceforge.stripes.action.Resolution;
 import net.sourceforge.stripes.action.SessionScope;
+import net.sourceforge.stripes.action.StreamingResolution;
 import net.sourceforge.stripes.integration.spring.SpringBean;
 
 import org.mybatis.jpetstore.domain.recommendation.FinalRecommendation;
@@ -32,12 +33,19 @@ public class FinalRecommendationActionBean extends AbstractActionBean implements
   private static final long serialVersionUID = 1L;
 
   private static final String FINAL_RECOMMENDATION = "/WEB-INF/jsp/recommendation/FinalRecommendation.jsp";
+  private static final String LOADING_PAGE = "/WEB-INF/jsp/recommendation/LoadingFinalRecommendation.jsp";
+
+  // 세션 키
+  private static final String SESSION_STATUS_KEY = "finalRecommendationStatus";
+  private static final String SESSION_LOG_KEY = "finalRecommendationLog";
+  private static final String SESSION_RESULT_KEY = "finalRecommendationResult";
 
   @SpringBean
   private transient FinalRecommendationService finalRecommendationService;
 
-  private String sessionId;
+  private String sessionId; // 게임 세션 ID
   private FinalRecommendation finalRecommendation;
+  private String agentLog;
 
   public String getSessionId() {
     return sessionId;
@@ -55,6 +63,10 @@ public class FinalRecommendationActionBean extends AbstractActionBean implements
     this.finalRecommendation = finalRecommendation;
   }
 
+  public String getAgentLog() {
+    return agentLog;
+  }
+
   @DefaultHandler
   public Resolution getRecommendation() {
     if (sessionId == null || sessionId.trim().isEmpty()) {
@@ -62,15 +74,68 @@ public class FinalRecommendationActionBean extends AbstractActionBean implements
       return new ForwardResolution(ERROR);
     }
 
-    try {
-      finalRecommendation = finalRecommendationService.getFinalRecommendation(sessionId);
+    // 로딩 페이지로 이동 후 비동기 처리
+    getContext().getRequest().getSession().setAttribute(SESSION_STATUS_KEY, "processing");
+    getContext().getRequest().getSession().setAttribute(SESSION_LOG_KEY, "");
 
+    final String gameSessionId = sessionId;
+    final String httpSessionId = getContext().getRequest().getSession().getId();
+    final javax.servlet.http.HttpSession httpSession = getContext().getRequest().getSession();
+
+    // 세션 ID 설정
+    finalRecommendationService.setSessionId(httpSessionId);
+
+    new Thread(() -> {
+      try {
+        finalRecommendationService.setSessionId(httpSessionId);
+        FinalRecommendation result = finalRecommendationService.getFinalRecommendation(gameSessionId);
+        httpSession.setAttribute(SESSION_RESULT_KEY, result);
+        httpSession.setAttribute(SESSION_LOG_KEY, finalRecommendationService.getLastAgentLog());
+        httpSession.setAttribute(SESSION_STATUS_KEY, "done");
+      } catch (Exception e) {
+        httpSession.setAttribute(SESSION_STATUS_KEY, "error");
+        httpSession.setAttribute(SESSION_LOG_KEY, "오류 발생: " + e.getMessage());
+      }
+    }).start();
+
+    return new ForwardResolution(LOADING_PAGE);
+  }
+
+  // AJAX: 현재 로그 상태 조회
+  public Resolution getLogStatus() {
+    String status = (String) getContext().getRequest().getSession().getAttribute(SESSION_STATUS_KEY);
+    String httpSessionId = getContext().getRequest().getSession().getId();
+
+    String log = finalRecommendationService.getLogBySessionId(httpSessionId);
+
+    if (status == null)
+      status = "idle";
+    if (log == null)
+      log = "";
+
+    String json = "{\"status\":\"" + status + "\",\"log\":" + escapeJson(log) + "}";
+    return new StreamingResolution("application/json", json);
+  }
+
+  // AJAX: 결과 가져오기
+  public Resolution getResult() {
+    String status = (String) getContext().getRequest().getSession().getAttribute(SESSION_STATUS_KEY);
+
+    if ("done".equals(status)) {
+      finalRecommendation = (FinalRecommendation) getContext().getRequest().getSession()
+          .getAttribute(SESSION_RESULT_KEY);
+      agentLog = (String) getContext().getRequest().getSession().getAttribute(SESSION_LOG_KEY);
       return new ForwardResolution(FINAL_RECOMMENDATION);
-
-    } catch (Exception e) {
-      e.printStackTrace();
-      setMessage("최종 추천 중 오류가 발생했습니다: " + e.getMessage());
-      return new ForwardResolution(ERROR);
+    } else {
+      return new ForwardResolution(LOADING_PAGE);
     }
+  }
+
+  private String escapeJson(String str) {
+    if (str == null)
+      return "\"\"";
+    return "\""
+        + str.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+        + "\"";
   }
 }

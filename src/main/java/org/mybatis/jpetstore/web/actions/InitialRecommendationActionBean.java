@@ -27,7 +27,6 @@ import net.sourceforge.stripes.integration.spring.SpringBean;
 
 import org.mybatis.jpetstore.domain.Account;
 import org.mybatis.jpetstore.domain.recommendation.CategoryRecommendation;
-import org.mybatis.jpetstore.service.InitialRecommendationService;
 import org.mybatis.jpetstore.service.OllamaRecommendationService;
 
 @SessionScope
@@ -44,13 +43,9 @@ public class InitialRecommendationActionBean extends AbstractActionBean implemen
   private static final String SESSION_RESULT_KEY = "ollamaResult";
 
   @SpringBean
-  private transient InitialRecommendationService initialRecommendationService;
-
-  @SpringBean
   private transient OllamaRecommendationService ollamaRecommendationService;
 
   private List<CategoryRecommendation> top5Categories;
-  private String llmMode = "ollama"; // 기본값: ollama (Local LLM)
   private String agentLog; // Ollama Agent 실행 로그
 
   public List<CategoryRecommendation> getTop5Categories() {
@@ -63,14 +58,6 @@ public class InitialRecommendationActionBean extends AbstractActionBean implemen
 
   public void setTop5Categories(List<CategoryRecommendation> top5Categories) {
     this.top5Categories = top5Categories;
-  }
-
-  public String getLlmMode() {
-    return llmMode;
-  }
-
-  public void setLlmMode(String llmMode) {
-    this.llmMode = llmMode;
   }
 
   @DefaultHandler
@@ -92,20 +79,7 @@ public class InitialRecommendationActionBean extends AbstractActionBean implemen
       return new ForwardResolution(ERROR);
     }
 
-    // Gemini 모드는 바로 처리
-    if (!"ollama".equals(llmMode)) {
-      try {
-        top5Categories = initialRecommendationService.getTop5Categories(account);
-        agentLog = null;
-        return new ForwardResolution(INITIAL_RECOMMENDATION);
-      } catch (Exception e) {
-        e.printStackTrace();
-        setMessage("추천 중 오류가 발생했습니다: " + e.getMessage());
-        return new ForwardResolution(ERROR);
-      }
-    }
-
-    // Ollama 모드: 로딩 페이지로 이동 후 비동기 처리
+    // Ollama 로컬 LLM으로 추천 (로딩 페이지로 이동 후 비동기 처리)
     getContext().getRequest().getSession().setAttribute(SESSION_STATUS_KEY, "processing");
     getContext().getRequest().getSession().setAttribute(SESSION_LOG_KEY, "");
 

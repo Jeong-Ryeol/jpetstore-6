@@ -30,49 +30,125 @@ import org.springframework.stereotype.Service;
 @Service
 public class FinalRecommendationService {
 
-  private final GeminiClient geminiClient;
+  private final OllamaClient ollamaClient;
   private final CatalogService catalogService;
   private final GameSessionRepository gameSessionRepository;
   private final AccountService accountService;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public FinalRecommendationService(GeminiClient geminiClient, CatalogService catalogService,
+  // 로그 저장용
+  private static final java.util.concurrent.ConcurrentHashMap<String, StringBuilder> sessionLogs = new java.util.concurrent.ConcurrentHashMap<>();
+  private static final ThreadLocal<String> currentSessionId = new ThreadLocal<>();
+
+  public FinalRecommendationService(OllamaClient ollamaClient, CatalogService catalogService,
       GameSessionRepository gameSessionRepository, AccountService accountService) {
-    this.geminiClient = geminiClient;
+    this.ollamaClient = ollamaClient;
     this.catalogService = catalogService;
     this.gameSessionRepository = gameSessionRepository;
     this.accountService = accountService;
   }
 
-  public FinalRecommendation getFinalRecommendation(String sessionId) {
-    GameSession session = gameSessionRepository.findById(sessionId);
-    if (session == null) {
-      throw new IllegalArgumentException("게임 세션을 찾을 수 없습니다: " + sessionId);
+  public void setSessionId(String sessionId) {
+    currentSessionId.set(sessionId);
+    sessionLogs.put(sessionId, new StringBuilder());
+  }
+
+  public String getLogBySessionId(String sessionId) {
+    StringBuilder log = sessionLogs.get(sessionId);
+    return log != null ? log.toString() : "";
+  }
+
+  public String getLastAgentLog() {
+    String sessionId = currentSessionId.get();
+    if (sessionId != null) {
+      return getLogBySessionId(sessionId);
     }
+    return "";
+  }
+
+  private void log(String message) {
+    String sessionId = currentSessionId.get();
+    if (sessionId != null) {
+      StringBuilder sb = sessionLogs.get(sessionId);
+      if (sb != null) {
+        sb.append(message).append("\n");
+      }
+    }
+    System.out.println(message);
+  }
+
+  public void cleanupSession(String sessionId) {
+    sessionLogs.remove(sessionId);
+  }
+
+  public FinalRecommendation getFinalRecommendation(String gameSessionId) {
+    log("================================================================");
+    log("  최종 추천 분석 시작 (Local LLM - Ollama llama3.1:8b)");
+    log("================================================================");
+    log("");
+
+    log("[1/5] 게임 세션 조회 중...");
+    GameSession session = gameSessionRepository.findById(gameSessionId);
+    if (session == null) {
+      throw new IllegalArgumentException("게임 세션을 찾을 수 없습니다: " + gameSessionId);
+    }
+    log("   ✓ 게임 세션 로드 완료");
+    log("   - 카테고리: " + session.getBreedId());
+    log("   - 최종 점수: " + session.getFinalScore() + "점");
+    log("   - 건강도: " + session.getHealth() + ", 행복도: " + session.getHappiness());
+    log("");
 
     if (!session.isFinished()) {
       throw new IllegalStateException("게임이 아직 종료되지 않았습니다.");
     }
 
+    log("[2/5] 사용자 정보 조회 중...");
     Account account = accountService.getAccount(session.getAccountId());
     if (account == null) {
       throw new IllegalArgumentException("사용자 정보를 찾을 수 없습니다: " + session.getAccountId());
     }
+    log("   ✓ 사용자 정보 로드 완료");
+    log("   - 나이: " + account.getAge() + ", 직업: " + account.getOccupation());
+    log("   - 주거형태: " + account.getHousingType() + ", 예산: " + account.getMonthlyBudget());
+    log("");
 
     // 게임에서 플레이한 카테고리의 품종들만 가져오기
+    log("[3/5] 카테고리 품종 목록 조회 중...");
     String categoryId = session.getBreedId(); // breedId는 실제로 categoryId를 저장
     List<Product> categoryProducts = getProductsByCategory(categoryId);
+    log("   ✓ " + categoryId + " 카테고리에서 " + categoryProducts.size() + "개 품종 로드");
+    for (Product p : categoryProducts) {
+      log("   - " + p.getProductId() + ": " + p.getName());
+    }
+    log("");
 
+    log("[4/5] LLM에게 최종 추천 요청 중...");
+    log("   → Ollama llama3.1:8b 호출...");
     String prompt = buildPrompt(account, session, categoryProducts, categoryId);
 
     String response;
     try {
-      response = geminiClient.chat(prompt);
+      response = ollamaClient.chat(prompt);
+      log("   ✓ LLM 응답 수신 완료");
+      // JSON 추출 (코드 블록 제거)
+      response = ollamaClient.extractJsonFromResponse(response);
     } catch (Exception e) {
-      throw new RuntimeException("Gemini API 호출 실패", e);
+      log("   ✗ LLM 호출 실패: " + e.getMessage());
+      throw new RuntimeException("Ollama API 호출 실패", e);
     }
+    log("");
 
-    return parseRecommendation(response, categoryId, session.getFinalScore());
+    log("[5/5] 응답 파싱 중...");
+    FinalRecommendation result = parseRecommendation(response, categoryId, session.getFinalScore());
+    log("   ✓ 최종 추천 품종: " + result.getBreedName() + " (" + result.getBreedId() + ")");
+    log("   ✓ 적합도: " + result.getConfidence() + "%");
+    log("");
+
+    log("================================================================");
+    log("  최종 추천 분석 완료!");
+    log("================================================================");
+
+    return result;
   }
 
   private List<Product> getProductsByCategory(String categoryId) {
@@ -86,6 +162,7 @@ public class FinalRecommendationService {
   private String buildPrompt(Account account, GameSession session, List<Product> products, String categoryId) {
     StringBuilder sb = new StringBuilder();
 
+    sb.append("IMPORTANT: Output ONLY valid JSON. Start with { character. No explanations, no code blocks.\n\n");
     sb.append("당신은 반려동물 추천 전문가입니다.\n\n");
     sb.append("사용자의 라이프스타일 정보:\n");
     sb.append("- 나이: ").append(account.getAge() != null ? account.getAge() : "미제공").append("\n");

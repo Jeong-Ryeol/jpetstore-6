@@ -83,6 +83,34 @@
       JPetStore AI 반려동물 추천 시스템
     </p>
   </div>
+
+  <!-- Agent 로그 표시 영역 -->
+  <c:if test="${not empty actionBean.agentLog}">
+    <div style="margin-top: 30px; border-top: 2px solid #ddd; padding-top: 20px;">
+      <button type="button" onclick="toggleAgentLog()"
+              style="padding: 10px 20px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+        분석 로그 보기/숨기기
+      </button>
+
+      <div id="agentLogContainer" style="display: none; margin-top: 15px;">
+        <div style="background: #1e1e1e; border-radius: 8px; padding: 20px; overflow-x: auto;">
+          <h4 style="color: #4fc3f7; margin-top: 0; margin-bottom: 15px;">최종 추천 분석 로그</h4>
+          <pre style="color: #d4d4d4; font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; line-height: 1.5; margin: 0; white-space: pre-wrap; word-wrap: break-word;"><c:out value="${actionBean.agentLog}" /></pre>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      function toggleAgentLog() {
+        var container = document.getElementById('agentLogContainer');
+        if (container.style.display === 'none') {
+          container.style.display = 'block';
+        } else {
+          container.style.display = 'none';
+        }
+      }
+    </script>
+  </c:if>
 </div>
 
 <%@ include file="../common/IncludeBottom.jsp"%>

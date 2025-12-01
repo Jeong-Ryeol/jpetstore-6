@@ -20,7 +20,7 @@
 
 <div id="Catalog">
   <h2>반려동물 돌봄 시뮬레이션</h2>
-  <p>24시간 동안 반려동물을 돌봐주세요. AI가 실시간으로 상황을 생성합니다.</p>
+  <p>총 8턴 동안 반려동물을 돌봐주세요. AI가 실시간으로 상황을 생성합니다.</p>
 
   <div style="margin: 20px 0; padding: 15px; background: #f0f0f0; border-radius: 5px;">
     <p><strong>카테고리:</strong> ${param.categoryId}</p>
@@ -143,9 +143,9 @@
     // 메시지 표시
     document.getElementById('game-message').innerText = data.message || '';
 
-    // 턴 번호 계산 (7시 시작 = 1턴, 31시 = 25턴이지만 보통 24턴 이내 종료)
-    const currentTurn = data.timeHour - 6;
-    const maxTurn = 24;
+    // 턴 번호 계산 (7시 시작, 3시간씩 증가, 총 8턴)
+    const currentTurn = Math.floor((data.timeHour - 7) / 3) + 1;
+    const maxTurn = 8;
 
     // 상태 표시
     const statusText =

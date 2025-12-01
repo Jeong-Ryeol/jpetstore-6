@@ -39,11 +39,12 @@ public class GamePromptBuilder {
   public String buildStartPrompt(String accountId, String breedName) {
     return """
         당신은 반려동물 돌봄 시뮬레이션 게임 엔진입니다.
-        사용자는 24시간 동안 %s를 돌보는 게임을 진행합니다.
+        사용자는 24시간 동안 %s를 돌보는 게임을 진행합니다. (총 8턴, 턴당 3시간)
 
         ### 공통 게임 규칙
-        - timeHour는 아침 7시에서 시작합니다. (예: 7, 8, 9 ...)
-        - 다음날 아침 7시(=31) 이상이 되면 finished=true로 설정하고 시뮬레이션을 종료합니다.
+        - timeHour는 아침 7시에서 시작합니다. (1턴=7시, 2턴=10시, 3턴=13시...)
+        - 매 턴마다 timeHour는 정확히 3씩 증가합니다.
+        - timeHour가 28 이상이면 (8턴째) finished=true로 설정하고 시뮬레이션을 종료합니다.
         - health, happiness, cost는 사용자의 선택에 따라 현실적으로 변화해야 합니다.
           - health : 0 ~ 150 범위
           - happiness : 0 ~ 150 범위
@@ -182,10 +183,10 @@ public class GamePromptBuilder {
 
     String prompt = """
         당신은 반려동물 돌봄 시뮬레이션 게임 엔진입니다.
-        사용자는 24시간 동안 동물을 돌보는 게임을 진행합니다.
+        사용자는 24시간 동안 동물을 돌보는 게임을 진행합니다. (총 8턴, 턴당 3시간)
 
         ### 공통 게임 규칙
-        - 다음날 아침 7시(timeHour = 31) 이상이 되면 finished=true로 설정하고 시뮬레이션을 종료합니다.
+        - timeHour가 28 이상이면 (8턴째) finished=true로 설정하고 시뮬레이션을 종료합니다.
         - health, happiness, cost는 사용자의 선택에 따라 현실적으로 변화해야 합니다.
           - health : 0 ~ 150 범위
           - happiness : 0 ~ 150 범위
@@ -265,19 +266,16 @@ public class GamePromptBuilder {
             (하지만 표현은 부드럽고 자연스럽게)
 
         ### 3. timeHour 규칙
-        - 이번 턴의 timeHour는 **반드시 이전 턴(%d)보다 크거나 같아야 합니다.**
-          - timeHour가 이전 값보다 작아지는 경우(예: 21 → 9)는 허용되지 않습니다.
-        - 일반적으로 timeHour는 이전 값에서 1~3 정도만 증가시키는 것이 자연스럽습니다.
-          - 예: 이전 값이 10이면, 11 또는 12 또는 13 정도로 설정
-        - 이번 턴이 게임 종료 턴이라면:
-          - timeHour는 **반드시 31 이상**이어야 합니다.
-          - 가능하면 31로 맞추는 것을 권장합니다.
+        - 이번 턴의 timeHour는 **반드시 이전 턴(%d)에서 정확히 3만 증가**해야 합니다.
+          - 예: 이전 값이 7이면 반드시 10, 이전 값이 10이면 반드시 13
+          - 3 외의 값으로 증가하면 안 됩니다!
+        - 게임은 총 8턴입니다. timeHour가 28 이상이면 (8턴째) finished=true로 설정합니다.
 
         ### 4. 이번 턴에서 해야 할 일
         - 직전 상태(lastState)와 사용자의 실제 선택(id="%s", text="%s")을 기준으로
           이번 턴의 message / timeHour / health / happiness / cost / finished / options / finalScore 값을 계산하세요.
         - finished가 true인 경우 다음의 규칙을 반드시 지키세요.
-            - timeHour는 반드시 31 이상이어야 합니다. (가능하면 31로 맞추세요.)
+            - timeHour는 반드시 28 이상이어야 합니다. (8턴째 = 28시)
             - options는 반드시 빈 배열([])로 반환합니다.
             - 종합 점수(finalScore)를 계산합니다.
             - finalScore = (health + happiness) / 2
